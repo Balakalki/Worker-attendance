@@ -4,8 +4,9 @@ import com.example.demo.workforce.dto.ActiveAttendanceResponse;
 import com.example.demo.workforce.dto.AttendanceLogResponse;
 import com.example.demo.workforce.dto.ClockInRequest;
 import com.example.demo.workforce.dto.ClockOutRequest;
-import org.springframework.data.domain.Page;
+import com.example.demo.workforce.dto.PageResponse;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -46,11 +47,11 @@ public class AttendanceController {
     }
 
     @GetMapping("/log")
-    public Page<AttendanceLogResponse> findWorkerAttendanceLog(
-            @RequestParam Long workerId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
-            Pageable pageable) {
-        return attendanceService.findWorkerAttendanceLog(workerId, from, to, pageable);
+    public PageResponse<AttendanceLogResponse> findWorkerAttendanceLog(
+            @RequestParam(required = false) Long workerId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return attendanceService.findAttendanceLog(workerId, from, to, pageable);
     }
 }

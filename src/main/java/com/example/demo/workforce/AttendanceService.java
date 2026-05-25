@@ -2,6 +2,7 @@ package com.example.demo.workforce;
 
 import com.example.demo.workforce.dto.ActiveAttendanceResponse;
 import com.example.demo.workforce.dto.AttendanceLogResponse;
+import com.example.demo.workforce.dto.PageResponse;
 import com.example.demo.workforce.exception.WorkforceApiException;
 import com.example.demo.workforce.redis.ActiveAttendanceCacheService;
 import org.springframework.data.domain.Page;
@@ -28,6 +29,8 @@ public class AttendanceService {
     private static final BigDecimal FIRST_OVERTIME_MULTIPLIER = BigDecimal.valueOf(1.5);
     private static final BigDecimal SECOND_OVERTIME_MULTIPLIER = BigDecimal.valueOf(2);
     private static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Kolkata");
+    private static final Instant MIN_ATTENDANCE_INSTANT = Instant.parse("1970-01-01T00:00:00Z");
+    private static final Instant MAX_ATTENDANCE_INSTANT = Instant.parse("9999-12-31T23:59:59Z");
 
     private final WorkerRepository workerRepository;
     private final SiteRepository siteRepository;
@@ -111,18 +114,19 @@ public class AttendanceService {
     }
 
     @Transactional(readOnly = true)
-    public Page<AttendanceLogResponse> findWorkerAttendanceLog(Long workerId, LocalDate from, LocalDate to, Pageable pageable) {
-        if (from.isAfter(to)) {
+    public PageResponse<AttendanceLogResponse> findAttendanceLog(Long workerId, LocalDate from, LocalDate to, Pageable pageable) {
+        if (from != null && to != null && from.isAfter(to)) {
             throw new WorkforceApiException("INVALID_DATE_RANGE", "from date must be before or equal to to date", HttpStatus.BAD_REQUEST);
         }
-        if (!workerRepository.existsById(workerId)) {
+        if (workerId != null && !workerRepository.existsById(workerId)) {
             throw new WorkforceApiException("WORKER_NOT_FOUND", "Worker not found", HttpStatus.NOT_FOUND);
         }
 
-        Instant fromInstant = from.atStartOfDay(BUSINESS_ZONE).toInstant();
-        Instant toInstant = to.atTime(LocalTime.MAX).atZone(BUSINESS_ZONE).toInstant();
-        return attendanceRepository.findByWorkerIdAndClockInAtBetween(workerId, fromInstant, toInstant, pageable)
+        Instant fromInstant = from == null ? MIN_ATTENDANCE_INSTANT : from.atStartOfDay(BUSINESS_ZONE).toInstant();
+        Instant toInstant = to == null ? MAX_ATTENDANCE_INSTANT : to.atTime(LocalTime.MAX).atZone(BUSINESS_ZONE).toInstant();
+        Page<AttendanceLogResponse> page = attendanceRepository.searchAttendanceLogs(workerId, fromInstant, toInstant, pageable)
                 .map(this::toResponse);
+        return new PageResponse<>(page);
     }
 
     private OvertimeEntry createOvertimeEntry(AttendanceLog attendanceLog, BigDecimal overtimeHours, Instant clockOutAt) {
