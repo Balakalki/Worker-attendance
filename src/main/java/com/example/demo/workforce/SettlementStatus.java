@@ -1,5 +1,6 @@
 package com.example.demo.workforce;
 
-public class SettlementStatus {
-    
+public enum SettlementStatus {
+    PENDING,
+    SETTLED
 }
