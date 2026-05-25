@@ -4,6 +4,8 @@ import com.example.demo.workforce.dto.CreateWorkerRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -30,5 +32,10 @@ public class WorkerController {
     @ResponseStatus(HttpStatus.CREATED)
     public Worker createWorker(@Valid @RequestBody CreateWorkerRequest request) {
         return workerService.createWorker(request);
+    }
+
+    @PutMapping("/{workerId}")
+    public Worker updateWorker(@PathVariable Long workerId, @Valid @RequestBody CreateWorkerRequest request) {
+        return workerService.updateWorker(workerId, request);
     }
 }
