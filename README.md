@@ -28,3 +28,37 @@ Have you got what it takes to become a professional software engineer? Cool I'll
 
 <img width="773" alt="Screenshot 2021-03-12 at 20 48 48" src="https://user-images.githubusercontent.com/40702606/111074947-627e1100-84dd-11eb-9d3f-85fdbf23e290.png">
 
+## Workforce Attendance Setup
+
+Run local infrastructure:
+
+```powershell
+docker compose up -d postgres redis
+```
+
+Run the backend:
+
+```powershell
+.\mvnw.cmd -DskipTests -P!build-frontend spring-boot:run
+```
+
+The local backend runs on `http://localhost:8082`. The React app calls that API directly.
+
+## Supabase Staging Database
+
+Use the Supabase connection pooler JDBC URL for staging and production, not the direct database URL. The pooler URL uses port `6543` and is designed for moderate concurrent traffic through PgBouncer.
+
+Set these environment variables for the `staging` profile:
+
+```text
+SPRING_PROFILES_ACTIVE=staging
+SUPABASE_POOLER_JDBC_URL=jdbc:postgresql://aws-...pooler.supabase.com:6543/postgres?sslmode=require
+SUPABASE_DB_USERNAME=...
+SUPABASE_DB_PASSWORD=...
+WORKFORCE_CORS_ALLOWED_ORIGINS=https://your-frontend.example.com
+REDIS_HOST=...
+REDIS_PORT=6379
+```
+
+`application-staging.properties` sets Hikari `max-lifetime` below common Supabase idle limits, enables keepalive, and raises the pool size for staging traffic. External API calls use short connect/read timeouts and are made before overtime summary database reads so slow third-party services do not hold database connections.
+

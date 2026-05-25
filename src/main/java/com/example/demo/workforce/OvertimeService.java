@@ -5,6 +5,7 @@ import com.example.demo.workforce.dto.OvertimeSettlementResponse;
 import com.example.demo.workforce.dto.OvertimeSummaryResponse;
 import com.example.demo.workforce.event.OvertimeSettledEvent;
 import com.example.demo.workforce.exception.WorkforceApiException;
+import com.example.demo.workforce.integration.MinimumWageRateClient;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -25,16 +26,20 @@ public class OvertimeService {
     private final WorkerRepository workerRepository;
     private final OvertimeRepository overtimeRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final MinimumWageRateClient minimumWageRateClient;
 
     public OvertimeService(WorkerRepository workerRepository,
                            OvertimeRepository overtimeRepository,
-                           ApplicationEventPublisher eventPublisher) {
+                           ApplicationEventPublisher eventPublisher,
+                           MinimumWageRateClient minimumWageRateClient) {
         this.workerRepository = workerRepository;
         this.overtimeRepository = overtimeRepository;
         this.eventPublisher = eventPublisher;
+        this.minimumWageRateClient = minimumWageRateClient;
     }
 
     public OvertimeSummaryResponse getMonthlySummary(Long workerId, String monthValue) {
+        minimumWageRateClient.fetchLatestRate();
         Worker worker = findWorker(workerId);
         YearMonth month = parseMonth(monthValue);
         List<OvertimeEntry> entries = findMonthlyEntries(workerId, month);
