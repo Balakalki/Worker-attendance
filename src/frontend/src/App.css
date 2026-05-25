@@ -76,6 +76,17 @@
   margin-bottom: 12px;
 }
 
+.overtime-summary {
+  margin: 2px 0 16px;
+}
+
+.overtime-summary .ant-col {
+  background: #f8fafc;
+  border: 1px solid #d9e1ea;
+  border-radius: 6px;
+  padding: 14px;
+}
+
 @media (max-width: 720px) {
   .workforce-content {
     width: calc(100% - 20px);

@@ -22,6 +22,7 @@ import {
 } from 'antd';
 import {
   ClockCircleOutlined,
+  EditOutlined,
   LoginOutlined,
   LogoutOutlined,
   ReloadOutlined,
@@ -36,8 +37,11 @@ import {
   createWorker,
   getActiveAttendance,
   getAttendanceLog,
+  getOvertimeSummary,
   getSites,
-  getWorkers
+  getWorkers,
+  settleOvertime,
+  updateWorker
 } from './client';
 import {errorNotification, successNotification} from './Notification';
 import './App.css';
@@ -56,12 +60,16 @@ function App() {
   const [activeAttendance, setActiveAttendance] = useState([]);
   const [attendanceLog, setAttendanceLog] = useState([]);
   const [attendanceTotal, setAttendanceTotal] = useState(0);
+  const [editingWorkerId, setEditingWorkerId] = useState(null);
+  const [overtimeSummary, setOvertimeSummary] = useState(null);
+  const [overtimeQuery, setOvertimeQuery] = useState(null);
   const [loading, setLoading] = useState(false);
   const [workerForm] = Form.useForm();
   const [siteForm] = Form.useForm();
   const [clockInForm] = Form.useForm();
   const [clockOutForm] = Form.useForm();
   const [logForm] = Form.useForm();
+  const [overtimeForm] = Form.useForm();
 
   const activeWorkers = useMemo(
     () => workers.filter(worker => worker.active),
@@ -99,16 +107,37 @@ function App() {
     logForm.setFieldsValue({
       range: [monthStart, today]
     });
-  }, [loadDashboard, logForm]);
+    overtimeForm.setFieldsValue({
+      month: moment().subtract(1, 'month')
+    });
+  }, [loadDashboard, logForm, overtimeForm]);
 
   const submitWorker = values => {
-    createWorker(values)
+    const action = editingWorkerId ? updateWorker(editingWorkerId, values) : createWorker(values);
+    action
       .then(worker => {
-        successNotification('Worker created', `${worker.name} is ready for attendance`);
+        successNotification(editingWorkerId ? 'Worker updated' : 'Worker created', `${worker.name} is ready for attendance`);
+        setEditingWorkerId(null);
         workerForm.resetFields();
         loadDashboard();
       })
       .catch(handleError);
+  };
+
+  const editWorker = worker => {
+    setEditingWorkerId(worker.id);
+    workerForm.setFieldsValue({
+      name: worker.name,
+      phone: worker.phone,
+      designation: worker.designation,
+      dailyWageRate: worker.dailyWageRate,
+      active: worker.active
+    });
+  };
+
+  const cancelWorkerEdit = () => {
+    setEditingWorkerId(null);
+    workerForm.resetFields();
   };
 
   const submitSite = values => {
@@ -155,13 +184,40 @@ function App() {
       .catch(handleError);
   };
 
+  const submitOvertimeSearch = values => {
+    const query = {
+      workerId: values.workerId,
+      month: values.month.format('YYYY-MM')
+    };
+    setOvertimeQuery(query);
+    getOvertimeSummary(query)
+      .then(setOvertimeSummary)
+      .catch(handleError);
+  };
+
+  const submitOvertimeSettlement = () => {
+    if (!overtimeQuery) {
+      errorNotification('Missing overtime search', 'Search a worker and month before settlement');
+      return;
+    }
+
+    settleOvertime(overtimeQuery)
+      .then(result => {
+        successNotification('Overtime settled', `Total amount: ₹${result.totalAmount}`);
+        return getOvertimeSummary(overtimeQuery);
+      })
+      .then(setOvertimeSummary)
+      .catch(handleError);
+  };
+
   const workerColumns = [
     {title: 'ID', dataIndex: 'id', width: 70},
     {title: 'Name', dataIndex: 'name'},
     {title: 'Phone', dataIndex: 'phone'},
     {title: 'Designation', dataIndex: 'designation', render: value => <Tag>{value}</Tag>},
     {title: 'Daily Wage', dataIndex: 'dailyWageRate', render: value => `₹${value}`},
-    {title: 'Status', dataIndex: 'active', render: active => active ? <Badge status="success" text="Active"/> : <Badge status="default" text="Inactive"/>}
+    {title: 'Status', dataIndex: 'active', render: active => active ? <Badge status="success" text="Active"/> : <Badge status="default" text="Inactive"/>},
+    {title: 'Action', render: (_, worker) => <Button icon={<EditOutlined/>} onClick={() => editWorker(worker)}>Edit</Button>}
   ];
 
   const siteColumns = [
@@ -187,6 +243,14 @@ function App() {
     {title: 'Hours', dataIndex: 'totalHoursWorked', render: value => value || '-'},
     {title: 'OT', dataIndex: 'overtimeHours', render: value => value || '-'},
     {title: 'Flagged', dataIndex: 'flagged', render: value => value ? <Tag color="red">Review</Tag> : <Tag>Clear</Tag>}
+  ];
+
+  const overtimeColumns = [
+    {title: 'Date', dataIndex: 'date'},
+    {title: 'Hours', dataIndex: 'overtimeHours'},
+    {title: 'Rate', dataIndex: 'overtimeRateApplied', render: value => `₹${value}`},
+    {title: 'Amount', dataIndex: 'amount', render: value => `₹${value}`},
+    {title: 'Status', dataIndex: 'settlementStatus', render: value => value === 'SETTLED' ? <Tag color="green">SETTLED</Tag> : <Tag color="gold">PENDING</Tag>}
   ];
 
   return (
@@ -263,7 +327,7 @@ function App() {
               <Row gutter={[16, 16]}>
                 <Col xs={24} lg={8}>
                   <section className="panel">
-                    <h2>Add Worker</h2>
+                    <h2>{editingWorkerId ? 'Update Worker' : 'Add Worker'}</h2>
                     <Form form={workerForm} layout="vertical" onFinish={submitWorker} initialValues={{active: true}}>
                       <Form.Item name="name" label="Name" rules={[{required: true}]}>
                         <Input/>
@@ -280,7 +344,10 @@ function App() {
                       <Form.Item name="active" label="Active" valuePropName="checked">
                         <Switch/>
                       </Form.Item>
-                      <Button type="primary" htmlType="submit">Create Worker</Button>
+                      <Space>
+                        <Button type="primary" htmlType="submit">{editingWorkerId ? 'Update Worker' : 'Create Worker'}</Button>
+                        {editingWorkerId && <Button onClick={cancelWorkerEdit}>Cancel</Button>}
+                      </Space>
                     </Form>
                   </section>
                 </Col>
@@ -337,6 +404,47 @@ function App() {
                 </Form>
                 {attendanceTotal > 0 && <Alert className="history-alert" type="info" showIcon message={`${attendanceTotal} attendance record(s) found`}/>}
                 <Table rowKey="id" dataSource={attendanceLog} columns={logColumns} pagination={{pageSize: 10}}/>
+              </section>
+            </TabPane>
+
+            <TabPane tab="Overtime" key="overtime">
+              <section className="panel">
+                <h2>Monthly Overtime</h2>
+                <Form form={overtimeForm} layout="inline" onFinish={submitOvertimeSearch} className="history-form">
+                  <Form.Item name="workerId" rules={[{required: true}]}>
+                    <Select placeholder="Worker" className="worker-select">
+                      {workers.map(worker => <Option key={worker.id} value={worker.id}>{worker.name}</Option>)}
+                    </Select>
+                  </Form.Item>
+                  <Form.Item name="month" rules={[{required: true}]}>
+                    <DatePicker picker="month"/>
+                  </Form.Item>
+                  <Button type="primary" htmlType="submit">Search</Button>
+                  <Button onClick={submitOvertimeSettlement} disabled={!overtimeSummary || overtimeSummary.settlementStatus === 'SETTLED'}>
+                    Settle
+                  </Button>
+                </Form>
+
+                {overtimeSummary && (
+                  <Row gutter={[16, 16]} className="overtime-summary">
+                    <Col xs={24} sm={8}>
+                      <Statistic title="Overtime Hours" value={overtimeSummary.totalOvertimeHours}/>
+                    </Col>
+                    <Col xs={24} sm={8}>
+                      <Statistic title="Payout Amount" value={overtimeSummary.totalPayoutAmount} prefix="₹"/>
+                    </Col>
+                    <Col xs={24} sm={8}>
+                      <Statistic title="Settlement" value={overtimeSummary.settlementStatus}/>
+                    </Col>
+                  </Row>
+                )}
+
+                <Table
+                  rowKey={record => `${record.date}-${record.amount}`}
+                  dataSource={overtimeSummary ? overtimeSummary.breakdown : []}
+                  columns={overtimeColumns}
+                  pagination={false}
+                />
               </section>
             </TabPane>
           </Tabs>
