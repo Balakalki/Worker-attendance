@@ -3,7 +3,9 @@ package com.example.demo.workforce;
 import com.example.demo.workforce.dto.OvertimeBreakdownResponse;
 import com.example.demo.workforce.dto.OvertimeSettlementResponse;
 import com.example.demo.workforce.dto.OvertimeSummaryResponse;
+import com.example.demo.workforce.event.OvertimeSettledEvent;
 import com.example.demo.workforce.exception.WorkforceApiException;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,13 +24,16 @@ public class OvertimeService {
 
     private final WorkerRepository workerRepository;
     private final OvertimeRepository overtimeRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public OvertimeService(WorkerRepository workerRepository, OvertimeRepository overtimeRepository) {
+    public OvertimeService(WorkerRepository workerRepository,
+                           OvertimeRepository overtimeRepository,
+                           ApplicationEventPublisher eventPublisher) {
         this.workerRepository = workerRepository;
         this.overtimeRepository = overtimeRepository;
+        this.eventPublisher = eventPublisher;
     }
 
-    @Transactional(readOnly = true)
     public OvertimeSummaryResponse getMonthlySummary(Long workerId, String monthValue) {
         Worker worker = findWorker(workerId);
         YearMonth month = parseMonth(monthValue);
@@ -55,16 +60,26 @@ public class OvertimeService {
         if (allSettled) {
             throw new WorkforceApiException("OVERTIME_ALREADY_SETTLED", "Overtime entries are already settled for this worker and month", HttpStatus.CONFLICT);
         }
+        boolean hasSettledEntries = entries.stream()
+                .anyMatch(entry -> entry.getSettlementStatus() == SettlementStatus.SETTLED);
+        if (hasSettledEntries) {
+            throw new WorkforceApiException("PARTIAL_SETTLEMENT_DETECTED", "Overtime entries are partially settled; manual review is required", HttpStatus.CONFLICT);
+        }
 
         BigDecimal totalAmount = entries.stream()
                 .map(OvertimeEntry::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        entries.stream()
-                .filter(entry -> entry.getSettlementStatus() == SettlementStatus.PENDING)
-                .forEach(entry -> entry.setSettlementStatus(SettlementStatus.SETTLED));
+        entries.forEach(entry -> entry.setSettlementStatus(SettlementStatus.SETTLED));
 
         overtimeRepository.saveAll(entries);
+        eventPublisher.publishEvent(new OvertimeSettledEvent(
+                worker.getId(),
+                worker.getName(),
+                worker.getPhone(),
+                month,
+                totalAmount
+        ));
         return new OvertimeSettlementResponse(worker.getId(), worker.getName(), month, totalAmount, entries.size());
     }
 
