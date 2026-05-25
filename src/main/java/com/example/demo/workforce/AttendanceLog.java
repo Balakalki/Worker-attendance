@@ -1,11 +1,5 @@
 package com.example.demo.workforce;
 
-import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
 import org.hibernate.annotations.Check;
 
 import javax.persistence.Column;
@@ -24,12 +18,6 @@ import javax.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.time.Instant;
 
-@Getter
-@Setter
-@ToString
-@EqualsAndHashCode(of = "id")
-@NoArgsConstructor
-@AllArgsConstructor
 @Entity
 @Table(
         name = "attendance_logs",
@@ -57,13 +45,11 @@ public class AttendanceLog {
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "worker_id", nullable = false)
-    @ToString.Exclude
     private Worker worker;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "site_id", nullable = false)
-    @ToString.Exclude
     private Site site;
 
     @NotNull
@@ -83,4 +69,71 @@ public class AttendanceLog {
 
     @Column(name = "flagged", nullable = false)
     private Boolean flagged = false;
+
+    public AttendanceLog() {
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Worker getWorker() {
+        return worker;
+    }
+
+    public void setWorker(Worker worker) {
+        this.worker = worker;
+    }
+
+    public Site getSite() {
+        return site;
+    }
+
+    public void setSite(Site site) {
+        this.site = site;
+    }
+
+    public Instant getClockInAt() {
+        return clockInAt;
+    }
+
+    public void setClockInAt(Instant clockInAt) {
+        this.clockInAt = clockInAt;
+    }
+
+    public Instant getClockOutAt() {
+        return clockOutAt;
+    }
+
+    public void setClockOutAt(Instant clockOutAt) {
+        this.clockOutAt = clockOutAt;
+    }
+
+    public BigDecimal getTotalHoursWorked() {
+        return totalHoursWorked;
+    }
+
+    public void setTotalHoursWorked(BigDecimal totalHoursWorked) {
+        this.totalHoursWorked = totalHoursWorked;
+    }
+
+    public BigDecimal getOvertimeHours() {
+        return overtimeHours;
+    }
+
+    public void setOvertimeHours(BigDecimal overtimeHours) {
+        this.overtimeHours = overtimeHours;
+    }
+
+    public Boolean getFlagged() {
+        return flagged;
+    }
+
+    public void setFlagged(Boolean flagged) {
+        this.flagged = flagged;
+    }
 }

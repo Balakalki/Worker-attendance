@@ -1,11 +1,5 @@
 package com.example.demo.workforce;
 
-import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
 import org.hibernate.annotations.Check;
 
 import javax.persistence.Column;
@@ -28,12 +22,6 @@ import javax.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-@Getter
-@Setter
-@ToString
-@EqualsAndHashCode(of = "id")
-@NoArgsConstructor
-@AllArgsConstructor
 @Entity
 @Table(
         name = "overtime_entries",
@@ -63,13 +51,11 @@ public class OvertimeEntry {
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "worker_id", nullable = false)
-    @ToString.Exclude
     private Worker worker;
 
     @NotNull
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "attendance_log_id", nullable = false)
-    @ToString.Exclude
     private AttendanceLog attendanceLog;
 
     @NotNull
@@ -95,4 +81,71 @@ public class OvertimeEntry {
     @Enumerated(EnumType.STRING)
     @Column(name = "settlement_status", nullable = false, length = 20)
     private SettlementStatus settlementStatus = SettlementStatus.PENDING;
+
+    public OvertimeEntry() {
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Worker getWorker() {
+        return worker;
+    }
+
+    public void setWorker(Worker worker) {
+        this.worker = worker;
+    }
+
+    public AttendanceLog getAttendanceLog() {
+        return attendanceLog;
+    }
+
+    public void setAttendanceLog(AttendanceLog attendanceLog) {
+        this.attendanceLog = attendanceLog;
+    }
+
+    public LocalDate getDate() {
+        return date;
+    }
+
+    public void setDate(LocalDate date) {
+        this.date = date;
+    }
+
+    public BigDecimal getOvertimeHours() {
+        return overtimeHours;
+    }
+
+    public void setOvertimeHours(BigDecimal overtimeHours) {
+        this.overtimeHours = overtimeHours;
+    }
+
+    public BigDecimal getOvertimeRateApplied() {
+        return overtimeRateApplied;
+    }
+
+    public void setOvertimeRateApplied(BigDecimal overtimeRateApplied) {
+        this.overtimeRateApplied = overtimeRateApplied;
+    }
+
+    public BigDecimal getAmount() {
+        return amount;
+    }
+
+    public void setAmount(BigDecimal amount) {
+        this.amount = amount;
+    }
+
+    public SettlementStatus getSettlementStatus() {
+        return settlementStatus;
+    }
+
+    public void setSettlementStatus(SettlementStatus settlementStatus) {
+        this.settlementStatus = settlementStatus;
+    }
 }

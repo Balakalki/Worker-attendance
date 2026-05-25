@@ -1,11 +1,5 @@
 package com.example.demo.workforce;
 
-import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
 import org.hibernate.annotations.Check;
 
 import javax.persistence.Column;
@@ -24,12 +18,6 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.math.BigDecimal;
 
-@Getter
-@Setter
-@ToString
-@EqualsAndHashCode(of = "id")
-@NoArgsConstructor
-@AllArgsConstructor
 @Entity
 @Table(
         name = "workers",
@@ -75,4 +63,55 @@ public class Worker {
 
     @Column(name = "active", nullable = false)
     private Boolean active = true;
+
+    public Worker() {
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public WorkerDesignation getDesignation() {
+        return designation;
+    }
+
+    public void setDesignation(WorkerDesignation designation) {
+        this.designation = designation;
+    }
+
+    public BigDecimal getDailyWageRate() {
+        return dailyWageRate;
+    }
+
+    public void setDailyWageRate(BigDecimal dailyWageRate) {
+        this.dailyWageRate = dailyWageRate;
+    }
+
+    public Boolean getActive() {
+        return active;
+    }
+
+    public void setActive(Boolean active) {
+        this.active = active;
+    }
 }
