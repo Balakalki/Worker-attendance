@@ -14,10 +14,14 @@ import java.util.List;
 public class WorkerService {
     private final WorkerRepository workerRepository;
     private final ActiveAttendanceCacheService activeAttendanceCacheService;
+    private final AttendanceRepository attendanceRepository;
 
-    public WorkerService(WorkerRepository workerRepository, ActiveAttendanceCacheService activeAttendanceCacheService) {
+    public WorkerService(WorkerRepository workerRepository,
+                         ActiveAttendanceCacheService activeAttendanceCacheService,
+                         AttendanceRepository attendanceRepository) {
         this.workerRepository = workerRepository;
         this.activeAttendanceCacheService = activeAttendanceCacheService;
+        this.attendanceRepository = attendanceRepository;
     }
 
     @Transactional(readOnly = true)
@@ -54,10 +58,22 @@ public class WorkerService {
 
         try {
             Worker savedWorker = workerRepository.save(worker);
-            activeAttendanceCacheService.invalidateWorker(workerId);
+            refreshActiveAttendanceCache(savedWorker);
             return savedWorker;
         } catch (DataIntegrityViolationException exception) {
             throw new WorkforceApiException("WORKER_ALREADY_EXISTS", "A worker with this phone already exists", HttpStatus.CONFLICT);
         }
+    }
+
+    private void refreshActiveAttendanceCache(Worker worker) {
+        attendanceRepository.findByWorkerIdAndClockOutAtIsNull(worker.getId())
+                .ifPresentOrElse(
+                        attendanceLog -> activeAttendanceCacheService.addActiveWorker(
+                                worker,
+                                attendanceLog.getSite(),
+                                attendanceLog.getClockInAt()
+                        ),
+                        () -> activeAttendanceCacheService.invalidateWorker(worker.getId())
+                );
     }
 }
