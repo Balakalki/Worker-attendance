@@ -1,64 +1,155 @@
 [![CICD](https://github.com/amigoscode/spring-boot-fullstack-professional/actions/workflows/deploy.yml/badge.svg?branch=main)](https://github.com/amigoscode/spring-boot-fullstack-professional/actions/workflows/deploy.yml)
 
-https://amigoscode.com/p/full-stack-spring-boot-react
+# Spring Boot Fullstack Professional
 
-![Cover](https://user-images.githubusercontent.com/40702606/111074799-bdfbcf00-84dc-11eb-98c0-d40a99aa0da7.png)
+A full-stack Spring Boot + React workforce attendance application.
 
-# Course Description
-Spring Boot allows to take an idea/prototype and turn it into a real thing in matters minutes hours of months and years. A lot of companies use Spring Boot because it's easy to setup, learn and write code very fast without having to setup the low level platform code. Recently, Netflix has decided to switch their entire backend to Spring Boot. This shows that Spring Boot is a must if you are or want to become a software engineer in the Java world.
-This course teaches how to build a full stack application from the ground up and touches on very import concepts used in real live software development. Concepts such as:
+## Overview
 
-- Spring Boot Backend API
-- Frontend with React.js Hooks and Functions Components
-- Maven Build Tool
-- Databases using Postgres on Docker
-- Spring Data JPA
-- Server and Client Side Error Handling
-- Packaging applications for deployment using Docker and Jib
-- AWS RDS & Elastic Beanstalk
-- Software Deployment Automation with Github Actions
-- Software Deployment Monitoring with Slack
-- Unit and Integration Testing
+This project includes:
 
-This course focus on teaching you the process needed to build your own apps and deploy to real users using real software development techniques and skills. The skills gained at the end of this can be applied immediately on your own projects, university projects and at your work place.
+- initial project set up cloned from https://github.com/amigoscode/spring-boot-fullstack-professional 
+- Spring Boot backend API
+- React frontend under `src/frontend`
+- Maven build with frontend integration via `frontend-maven-plugin`
+- PostgreSQL and Redis support
+- Multiple profiles: `default`, `dev`, and `staging`
 
-Have you got what it takes to become a professional software engineer? Cool I'll see you inside. https://amigoscode.com/p/full-stack-spring-boot-react
+## Prerequisites
 
-![Screenshot 2021-03-11 at 22 56 19](https://user-images.githubusercontent.com/40702606/111074929-5003d780-84dd-11eb-8284-e7c92c7e2905.png)
+- Java 17+ or Java 23 installed
+- Maven wrapper available via `mvnw.cmd`
+- Docker Desktop (for local Postgres/Redis in dev)
+- Node/npm installed if you want to run the frontend separately
 
-<img width="773" alt="Screenshot 2021-03-12 at 20 48 48" src="https://user-images.githubusercontent.com/40702606/111074947-627e1100-84dd-11eb-9d3f-85fdbf23e290.png">
+## Run modes
 
-## Workforce Attendance Setup
+The application supports three modes:
 
-Run local infrastructure:
+1. `default` profile (no active profile)
+2. `dev` profile
+3. `staging` profile
+
+All modes load `application.properties` first, then overlay the profile-specific file when a profile is active.
+
+Use cmd to run all the bellow commands
+
+### Default mode
+
+This is the fallback mode when no `SPRING_PROFILES_ACTIVE` is set.
+
+Start local infrastructure:
 
 ```powershell
 docker compose up -d postgres redis
 ```
 
-Run the backend:
+```powershell
+.\ mvnw spring-boot:run
+```
+
+The backend runs on `http://localhost:8082` using the values in `src/main/resources/application.properties`.
+
+### Dev mode
+
+Use the `dev` profile for local development with Docker-managed Postgres and Redis.
+
+Start local infrastructure:
 
 ```powershell
+docker compose up -d postgres redis
+```
+
+Run the backend with the `dev` profile:
+
+```powershell
+set SPRING_PROFILES_ACTIVE=dev
+.\mvnw spring-boot:run
+```
+
+Dev mode uses the local database settings from `src/main/resources/application-dev.properties` and still listens on port `8082`.
+
+### Staging mode
+
+Staging mode uses the Supabase pooler URL and environment variables for secrets.
+
+Set the required staging variables in Windows CMD like this:
+
+```cmd
+set SPRING_PROFILES_ACTIVE=staging
+set SUPABASE_POOLER_JDBC_URL=jdbc:postgresql://your-supabase-pooler.supabase.co:6543/postgres?sslmode=require
+set SUPABASE_DB_USERNAME=your_db_username
+set SUPABASE_DB_PASSWORD=your_db_password
+set WORKFORCE_CORS_ALLOWED_ORIGINS=https://your-frontend.example.com
+```
+
+Then start the app:
+
+```powershell
+.\mvnw spring-boot:run
+```
+
+Staging mode reads values from `src/main/resources/application-staging.properties`, including:
+
+- `SUPABASE_POOLER_JDBC_URL`
+- `SUPABASE_DB_USERNAME`
+- `SUPABASE_DB_PASSWORD`
+- `WORKFORCE_CORS_ALLOWED_ORIGINS`
+
+The staging configuration also adjusts Hikari pool settings for production-style database traffic.
+
+## Notes
+
+- The `build-frontend` Maven profile is active by default. Use `-P!build-frontend` to skip frontend build during backend startup.
+- The backend server uses port `8082` by default.
+- For local dev, Postgres is expected at `jdbc:postgresql://localhost:5433/workforce` and Redis at `localhost:6379`.
+- For staging, use the Supabase pooler JDBC URL on port `6543` rather than the direct database URL.
+
+## Running the frontend separately
+
+If you want to work on the React frontend separately, open `src/frontend` and run:
+
+```powershell
+npm install
+```
+no need to run this separately that will be build by maven while running backend and lisents to same port on which backend is running
+
+## Useful commands
+
+```powershell
+# Local dev backend
+set SPRING_PROFILES_ACTIVE=dev
+.\mvnw spring-boot:run
+
+# Default backend
+.\mvnw spring-boot:run
+
+# Staging backend
+set SPRING_PROFILES_ACTIVE=staging
+set SUPABASE_POOLER_JDBC_URL=... 
+set SUPABASE_DB_USERNAME=...
+set SUPABASE_DB_PASSWORD=...
+set WORKFORCE_CORS_ALLOWED_ORIGINS=https://your-frontend.example.com
 .\mvnw.cmd -DskipTests -P!build-frontend spring-boot:run
 ```
 
-The local backend runs on `http://localhost:8082`. The React app calls that API directly.
+## AI tools used
 
-## Supabase Staging Database
+- used codex to build and set up the project and work on it
+- used gpt to understand the folders JPA and what Hibernate do and other queries I got while developing
+- copilot to generate the README.md file and later modified it according to the requirements
 
-Use the Supabase connection pooler JDBC URL for staging and production, not the direct database URL. The pooler URL uses port `6543` and is designed for moderate concurrent traffic through PgBouncer.
 
-Set these environment variables for the `staging` profile:
+## Features Included if more time
 
-```text
-SPRING_PROFILES_ACTIVE=staging
-SUPABASE_POOLER_JDBC_URL=jdbc:postgresql://aws-...pooler.supabase.com:6543/postgres?sslmode=require
-SUPABASE_DB_USERNAME=...
-SUPABASE_DB_PASSWORD=...
-WORKFORCE_CORS_ALLOWED_ORIGINS=https://your-frontend.example.com
-REDIS_HOST=...
-REDIS_PORT=6379
-```
+- site and worker activate and deactivate
+- site update
+- payment history
+- list all overtime workers and apply filters such as settled, pending, date range etc as of now we only have per worker per month listing.
+- front end improvements like preventing multiple button clicks (ex: to create site if we click create site then the button should be disabled preventing another api request with same data) etc.
+- logs for debuging
 
-`application-staging.properties` sets Hikari `max-lifetime` below common Supabase idle limits, enables keepalive, and raises the pool size for staging traffic. External API calls use short connect/read timeouts and are made before overtime summary database reads so slow third-party services do not hold database connections.
+## Addition features implemented
 
+- create and update worer
+- create site
