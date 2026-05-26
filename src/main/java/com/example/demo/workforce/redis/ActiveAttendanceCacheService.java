@@ -89,6 +89,16 @@ public class ActiveAttendanceCacheService {
         }
     }
 
+    public boolean exists(Long workerId) {
+    try {
+        Boolean exists = redisTemplate.hasKey(activeWorkerKey(workerId));
+        return Boolean.TRUE.equals(exists);
+    } catch (RuntimeException exception) {
+        LOGGER.warn("Redis unavailable while checking active worker {}", workerId, exception);
+        return false;
+    }
+}
+
     private String activeWorkerKey(Long workerId) {
         return activeWorkerKey(workerId.toString());
     }

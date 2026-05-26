@@ -66,6 +66,9 @@ public class WorkerService {
     }
 
     private void refreshActiveAttendanceCache(Worker worker) {
+
+        if (!activeAttendanceCacheService.exists(worker.getId())) return;
+
         attendanceRepository.findByWorkerIdAndClockOutAtIsNull(worker.getId())
                 .ifPresentOrElse(
                         attendanceLog -> activeAttendanceCacheService.addActiveWorker(
